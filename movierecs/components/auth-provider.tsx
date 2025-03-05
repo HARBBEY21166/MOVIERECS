@@ -42,7 +42,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (storedToken && storedUser) {
       setToken(storedToken)
-      setUser(JSON.parse(storedUser))
+      try {
+        setUser(JSON.parse(storedUser))
+      } catch (e) {
+        console.error("Failed to parse stored user:", e)
+        localStorage.removeItem("user")
+      }
     }
 
     setIsLoading(false)
@@ -60,7 +65,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
 
       if (!response.ok) {
-        throw new Error("Login failed")
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.detail || "Login failed")
       }
 
       const data = await response.json()
@@ -69,18 +75,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("token", data.access)
       setToken(data.access)
 
-      // Fetch user data
-      const userResponse = await fetch("https://alxprodev-movie-recommendation-backend.onrender.com/api/users/me/", {
-        headers: {
-          Authorization: `Bearer ${data.access}`,
-        },
-      })
-
-      if (userResponse.ok) {
-        const userData = await userResponse.json()
-        setUser(userData)
-        localStorage.setItem("user", JSON.stringify(userData))
+      // Create a basic user object if we can't fetch user data
+      const basicUser = {
+        id: "user",
+        email: email,
+        first_name: email.split("@")[0],
+        last_name: "",
       }
+
+      try {
+        // Fetch user data
+        const userResponse = await fetch("https://alxprodev-movie-recommendation-backend.onrender.com/api/users/me/", {
+          headers: {
+            Authorization: `Bearer ${data.access}`,
+          },
+        })
+
+        if (userResponse.ok) {
+          const userData = await userResponse.json()
+          setUser(userData)
+          localStorage.setItem("user", JSON.stringify(userData))
+        } else {
+          // If we can't get user data, use the basic user
+          setUser(basicUser)
+          localStorage.setItem("user", JSON.stringify(basicUser))
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error)
+        // Fallback to basic user
+        setUser(basicUser)
+        localStorage.setItem("user", JSON.stringify(basicUser))
+      }
+    } catch (error) {
+      console.error("Login error:", error)
+      throw error
     } finally {
       setIsLoading(false)
     }
@@ -98,11 +126,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
 
       if (!response.ok) {
-        throw new Error("Signup failed")
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.detail || "Signup failed")
       }
 
       // Login after successful signup
       await login(userData.email, userData.password)
+    } catch (error) {
+      console.error("Signup error:", error)
+      throw error
     } finally {
       setIsLoading(false)
     }

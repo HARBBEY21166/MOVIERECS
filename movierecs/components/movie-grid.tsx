@@ -1,5 +1,6 @@
 import type { Movie } from "@/types"
 import MovieCard from "./movie-card"
+import { Loader2 } from "lucide-react"
 
 interface MovieGridProps {
   movies: Movie[]
@@ -20,6 +21,7 @@ export default function MovieGrid({ movies, isLoading = false }: MovieGridProps)
   if (!movies || movies.length === 0) {
     return (
       <div className="text-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
         <p className="text-muted-foreground">No movies found</p>
       </div>
     )

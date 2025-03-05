@@ -56,11 +56,12 @@ export default function SignupPage() {
         description: "Your account has been created successfully",
       })
 
-      router.push("/")
+      router.push("/movies")
     } catch (error) {
+      console.error("Signup error:", error)
       toast({
         title: "Signup failed",
-        description: "There was an error creating your account",
+        description: "There was an error creating your account. Please try again.",
         variant: "destructive",
       })
     } finally {
